@@ -1,0 +1,123 @@
+<html>
+
+<head>
+    <title>Form</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body>
+    <form id="myForm" style="margin-left:550px">
+        <input type="text" onkeypress="return isNumberKey(event);" id="dataInput" required>
+        <button type="submit">Submit</button>
+    </form>
+    <div id="sum" style="color:red; text-align:center"></div>
+    <div id="output" style="color:blue; text-align:center"></div>
+    
+
+    <script src="script.js"></script>
+</body>
+<script>
+
+ $(document).ready(function () {
+        const form = document.getElementById('myForm');
+        const dataInput = document.getElementById('dataInput');
+        const outputDiv = document.getElementById('output');
+        const sumDiv = document.getElementById('sum');
+        let totalSum = 0;
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const data = dataInput.value;
+
+            const jsonData = { data };
+
+            fetch('/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(jsonData),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    displayData(data);
+                    calculateSum(data);
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+
+            dataInput.value = '';
+        });
+
+        function displayData(data) {
+            outputDiv.innerHTML = '';
+            data.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'data-row';
+
+                const paragraph = document.createElement('p');
+                paragraph.textContent = `Items Rs.: ${item.data}, Date & Time: ${item.datetime}`; // Display data and datetime
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => {
+                    deleteItem(index);
+                });
+
+                paragraph.appendChild(deleteButton);
+                row.appendChild(paragraph);
+                outputDiv.appendChild(row);
+            });
+        }
+
+        function calculateSum(data) {
+            totalSum = 0;
+            data.forEach((item) => {
+                totalSum += parseInt(item.data);
+            });
+            sumDiv.textContent = 'Total Rs.: ' + totalSum;
+        }
+
+        // Retrieve and display data on page load
+        fetch('/submit')
+            .then((response) => response.json())
+            .then((data) => {
+                displayData(data);
+                calculateSum(data);
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+
+        function deleteItem(index) {
+            fetch(`/submit/${index}`, {
+                method: 'DELETE',
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    displayData(data);
+                    calculateSum(data);
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+        }
+
+        // Event delegation to handle the click event on dynamically created rows
+        outputDiv.addEventListener('click', (event) => {
+            const row = event.target.closest('.data-row');
+            if (row) {
+                const index = Array.from(row.parentNode.children).indexOf(row);
+                deleteItem(index);
+            }
+        });
+    });
+
+    function isNumberKey(evt) {
+        var charCode = evt.which ? evt.which : evt.keyCode;
+        return !(charCode > 31 && (charCode < 48 || charCode > 57));
+    }
+
+</script>
+</html>
